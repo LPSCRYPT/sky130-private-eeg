@@ -48,6 +48,13 @@ module tb_capture;
     task automatic harness_cmd(input reg [2:0] command, input reg [7:0] value);
         strobe=1; op=command; din=value; advance(); strobe=0;
     endtask
+    // The pattern generator supplies one strobe edge per held bus command.
+    // Host transport latency is not modelled; the data must already be stable.
+    task automatic bench_phase(input reg [2:0] command, input reg [7:0] value);
+        strobe=0; op=command; din=value;
+        repeat (SLOT_PERIOD/4-1) advance();
+        harness_cmd(command,value);
+    endtask
     task automatic load_fixture1;
         reg [399:0] packet;
         integer i;
@@ -91,11 +98,10 @@ module tb_capture;
             for (i=0; i<500; i=i+1) begin
                 if (harness_ready !== 1'b1 || harness_valid !== 1'b0) $fatal(1, "loader slot %0d not serviceable", i);
                 raw = fixture_sample(i,1);
-                harness_cmd(2,raw[7:0]); harness_cmd(2,raw[15:8]); harness_cmd(2,raw[23:16]); harness_cmd(3,0);
-                if (i != 499) repeat (SLOT_PERIOD-4) advance();
+                bench_phase(2,raw[7:0]); bench_phase(2,raw[15:8]); bench_phase(2,raw[23:16]); bench_phase(3,0);
             end
             last_tick=cycles;
-            if (last_tick-arm != 4+499*SLOT_PERIOD || harness_ready !== 1'b0 || harness_busy !== 1'b1)
+            if (last_tick-arm != 500*SLOT_PERIOD || harness_ready !== 1'b0 || harness_busy !== 1'b1)
                 $fatal(1, "wrong byte harness schedule");
             while (harness_valid === 1'b0 && cycles-last_tick <= FINAL_TAIL) advance();
             if ({harness_busy,harness_ready,harness_valid} !== 3'b001 || cycles-last_tick != FINAL_TAIL)
@@ -104,7 +110,7 @@ module tb_capture;
                 harness_cmd(5,i[7:0]); collected[8*i +: 8]=dout;
             end
             if (collected !== {1'b0,expected1}) $fatal(1, "harness root=%064h expected=%064h", collected, expected1);
-            $display("PASS byte harness slots=500 spacing=%0d last_tick_to_root=%0d root=%064h", SLOT_PERIOD, FINAL_TAIL, collected);
+            $display("PASS byte harness slots=500 clocks_per_command=%0d last_tick_to_root=%0d root=%064h", SLOT_PERIOD/4, FINAL_TAIL, collected);
         end
     endtask
 

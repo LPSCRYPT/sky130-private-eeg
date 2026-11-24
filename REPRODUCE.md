@@ -15,10 +15,14 @@ eda sh tools/map_area.sh
 eda sta -exit tools/timing.tcl
 eda openroad -threads 3 -exit tools/place.tcl
 eda openroad -threads 3 -exit tools/repair_slow.tcl
+eda openroad -exit tools/placement_view.tcl  # regenerate the published placement view from this database
+: > build/placed-12mhz.log
+: > build/placed-10mhz.log
 for corner in tt_025C_1v80 ss_n40C_1v60 ss_100C_1v60 ff_n40C_1v95 ff_100C_1v95; do
-  eda env EEG_LIB_CORNER="$corner" EEG_PLACEMENT_DB=build/corner-optimized.odb openroad -threads 2 -exit tools/corners.tcl
-  eda env EEG_LIB_CORNER="$corner" EEG_PERIOD_NS=100 EEG_PLACEMENT_DB=build/corner-optimized.odb openroad -threads 2 -exit tools/corners.tcl
+  eda env EEG_LIB_CORNER="$corner" EEG_PLACEMENT_DB=build/corner-optimized.odb openroad -threads 2 -exit tools/corners.tcl >> build/placed-12mhz.log
+  eda env EEG_LIB_CORNER="$corner" EEG_PERIOD_NS=100 EEG_PLACEMENT_DB=build/corner-optimized.odb openroad -threads 2 -exit tools/corners.tcl >> build/placed-10mhz.log
 done
+python3 tools/plot_timing.py build/placed-12mhz.log build/placed-10mhz.log
 docker stop eeg-quality
 ```
 
@@ -73,6 +77,7 @@ The recorded excerpt is Schalk, *EEG Motor Movement/Imagery Dataset*, PhysioNet,
 mkdir -p build/params
 cargo run --locked --manifest-path tools/paramgen/Cargo.toml -- build/params
 cmp params/ark.hex build/params/ark.hex && cmp params/mds.hex build/params/mds.hex
+python3 tools/plot_replay.py  # regenerate the public EEG input figure, including the injected gap
 sh tools/build_proposal.sh  # Pandoc 3+, WeasyPrint, DejaVu Sans
 ```
 

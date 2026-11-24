@@ -1,38 +1,27 @@
-# Demonstration evidence
+# What the tests showed
 
-## Did the laptop verify anything useful?
+## A missing conversion is not a flat signal
 
-| Executed case | Observer result | What was actually exercised |
-|----------------|----------|-------------------------------|
-| Ten-minute **synthetic** study: 300 × 500 slots | **271 of 300 passed** | All 300 proofs were generated and verified. Four rail codes were allowed; 15 windows had five rails, another 14 had an explicit missing conversion. The expected session length and all ordered roots were bound by the recorder signature. |
-| Four-second **recorded EEG replay**, with one injected missing conversion | **1 of 2 passed** | Public PhysioNet S001 R02 Oz excerpt, 160 Hz held on the 250 Hz test schedule. No fabricated ADC or participant measurement. Independently simulated HDL reproduced both signed-manifest roots bit for bit using the same inputs and fresh openings. |
+![Public input to the replay test. One conversion was deliberately withheld in the second window; the gap was not present in the original recording. The laptop verifier does not receive this trace.](replay.svg)
 
-For the 300-window run the public bundle was **77,607 bytes**, including a 192-byte Groth16 proof for each window. Proving took **189.11 s** wall time and verification **0.50 s** on an arm64 workstation, four Rayon workers. Prover peak process RSS was 385,990,656 bytes. The two-window bundle was 723 bytes. These are single host runs; throughput, memory, energy and privacy on a chip are not inferred. Keys were generated for development, not by a production ceremony. No private recording or signing key accompanies the public verifier examples.
+The input is four seconds from the [PhysioNet EEG Motor Movement/Imagery Dataset](https://doi.org/10.13026/C28G6P), S001 R02, channel Oz. The test holds the 160 Hz input on a 250 Hz schedule and marks slot 610 missing. Both 500-slot roots from the simulated RTL matched the software recorder’s signed manifest bit for bit. The observer verified **1 of 2 windows passed** without opening either one. This is replay of an attributed recording, not live acquisition.
 
-**Negative checks.** Changed challenge, expected length, device identity, signature, policy, root, manifest order, truncation, initial opening, hidden link, proof order, omission, final opening, aggregate and trailing bytes were rejected. Signed roots alone do not prove acquisition provenance. Successful replay against the *same* expectations is intentional for archival checks; a live application must retire challenges after use.
+**Hardware bench.** Three independent known answers cover both signed rails and a missing slot carrying a nonzero value on the ignored data bus. Reset, overrun, malformed commands and a noncanonical opening produced no valid root. On the byte wrapper, 500 slots with one strobed command every 5,500 clocks yielded the exact reference root. At 22,000 clocks per slot the last tick to `root_valid` took **212,993 clocks**: 38.73 ms at 5.5 MHz. Polling a host register cannot measure that edge precisely.
 
-## Did the hardware commit to the same data?
+**Longer session.** In a separate ten-minute synthetic test, 15 windows had five rail samples and 14 others had a missing conversion. The laptop verified **271 of 300**. The bundle was 77,607 bytes, including one 192-byte Groth16 proof per window. Proving took 189.11 s and verification 0.50 s on an arm64 workstation with four Rayon workers; prover peak RSS was 385,990,656 bytes. These are host measurements, not on-chip benchmarks.
 
-The Verilator bench matched an independent integer oracle on three 500-slot known answers: both digital input branches (direct and byte loader), either rail, and a missing slot with a nonzero ignored payload. Reset, overrun, malformed framing and noncanonical opening cases aborted without releasing a root. The separate Oz replay bridge fed the two actual manifest test windows into RTL; the software signer and prover are not instantiated in that RTL.
-
-At 22,000 clocks per slot, the bench counted **212,993 clocks from the final tick to root-valid**. That is 38.73 ms at 5.5 MHz or 17.75 ms at 12 MHz; the latter is calculated from the cycle count. Do not assume gapless consecutive windows: the recorder needs trusted buffering across finalization and rearming. The 300-window host run tests complete-session verification, not continuous acquisition by a fabricated chip.
-
-Data: [PhysioNet EEG Motor Movement/Imagery Dataset, version 1.0.0](https://doi.org/10.13026/C28G6P), used under ODC-By 1.0. The source excerpt, hash, attribution and transformation are in the public source package.
+The verifier rejected a different challenge, device key, policy, root or total, and rejected omitted or swapped proofs. The public examples use development keys. Rechecking an archived receipt under its original challenge is intentional; a live observer must issue and retire fresh challenges.
 
 <div class="newpage"></div>
 
-## Physical feasibility: what passed and what did not
+## Placement and timing
 
-The entire test wrapper and core mapped to **0.2303 mm²** of Sky130 HD typical-library cell area before physical buffering. That first netlist **failed** 12 MHz setup by 377.294 ns; high-fanout control nets were not viable as single drivers. Physical buffering and placement, followed by slow-cold resizing, produced **0.2654 mm²** of cells in a **0.4574 mm² trial core rectangle** (58% utilization). This is a legalized experimental placement, not a routed or allocated slot layout.
+![Sky130 high-density standard cells after legalization. The map comes from the final OpenDB placement, not a mask image or assigned shuttle slot.](placement.svg)
 
-| Placed cell library | Setup slack at 12 MHz | Setup slack at 10 MHz | Hold slack, ideal clock |
-|---|---:|---:|---:|
-| Typical, 25 °C, 1.80 V | +46.669 ns | +63.336 ns | +0.465 ns |
-| Slow, −40 °C, 1.60 V | **−2.751 ns** | +13.916 ns | +0.925 ns |
-| Slow, 100 °C, 1.60 V | +7.613 ns | +24.280 ns | +0.921 ns |
-| Fast, −40 °C, 1.95 V | +61.227 ns | +77.894 ns | +0.284 ns |
-| Fast, 100 °C, 1.95 V | +61.449 ns | +78.116 ns | +0.296 ns |
+The first, unbuffered map missed 12 MHz setup by 377.294 ns. Buffering the high-fanout controls and resizing at slow/cold brought the wrapper and core to **0.2654 mm² of cells**. The row area is **0.4574 mm²**; the outer trial rectangle is **0.4938 mm²**. The latter is the relevant starting point for a slot discussion, not the sum of the cell areas.
 
-**Decision:** 10 MHz has positive estimated setup and hold slack in all five checked libraries and is above the 5.325 MHz in-window service requirement for 250 slots/s. The **12 MHz nominal target is not closed across corners**. The 1.60 V slow libraries are guardband checks, not exact 1.62 V models. No 110 °C model was tested. Timing uses an ideal clock, 3 ns external I/O delays, 0.02 pF output load and placement-based nominal layer RC. It excludes clock-tree skew and extracted interconnect. Clock tree, routing, DRC/LVS, extracted STA, power, physical security and silicon measurements remain open.
+![Estimated setup slack. A point to the left of zero misses the clock target. All five estimated hold margins were positive, ranging from 0.284 to 0.925 ns.](timing.svg)
 
-**Integration gate:** confirm that the organizer can allocate the footprint and deliver the requested clock and control bandwidth. An uninterrupted real-time session also needs a protected inter-window buffer and an independently trusted acquisition/signing path. Neither signed desktop files nor an exposed fixture loader provides these guarantees.
+At **10 MHz**, all five placed-library estimates have positive setup and hold slack. At **12 MHz**, the **−40 °C slow library misses setup by 2.751 ns**. That makes 12 MHz a design target, not a corner-qualified rating. The 1.60 V libraries are guardband cases for the 1.62 V target; no 110 °C library was tested.
+
+These estimates use an ideal clock, 3 ns external I/O delays, 0.02 pF loads and placement-estimated wire RC. There is no clock tree, routing, extracted timing, DRC/LVS or silicon power measurement. A continuous recorder also needs buffering across finalization and rearming. Neither the trial placement nor the 300-window host run establishes gapless capture.
