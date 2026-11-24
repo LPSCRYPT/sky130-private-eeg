@@ -9,7 +9,7 @@ A researcher may need one number: **how many EEG windows contained every sample 
 The recorder has two paths for the same window: the Sky130 core commits to it as samples arrive, and the owner retains the samples and secret opening for a later proof. Only the public proof bundle goes to the observer.
 
 ```mermaid
-flowchart TB
+flowchart LR
     slots["ADC and sample timer<br/>24-bit code or missing slot"]
     arm["Window start<br/>Challenge, index, secret opening"]
 
