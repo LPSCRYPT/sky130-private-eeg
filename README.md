@@ -4,6 +4,33 @@ A researcher may need one number: **how many EEG windows contained every sample 
 
 **[Read the six-page Chipalooza proposal](proposal/chipalooza-4-private-eeg.pdf)** · [Use the RTL](rtl/INTERFACE.md) · [Reproduce the results](REPRODUCE.md)
 
+## System architecture
+
+The recorder has two paths for the same window: the Sky130 core commits to it as samples arrive, and the owner retains the samples and secret opening for a later proof. Only the public proof bundle goes to the observer.
+
+```mermaid
+flowchart TB
+    slots["ADC and sample timer<br/>24-bit code or missing slot"]
+    arm["Window start<br/>Challenge, index, secret opening"]
+
+    subgraph core["Proposed Sky130 digital core"]
+        pack["eeg_capture<br/>Pack 10 ordered slots per word"]
+        hash["eeg_poseidon<br/>Poseidon with one shared fr_mul"]
+        pack -->|"50 words per window"| hash
+    end
+
+    slots --> pack
+    arm --> hash
+    hash -->|"32-byte window root"| sign["Recorder signer · Ed25519"]
+    sign -->|"Signed, ordered roots"| prove["Owner's prover · Groth16"]
+    witness["Private copy of slots and openings"] --> prove
+    prove -->|"Signed roots, proofs and total"| verify["Observer laptop<br/>Verify the QC01 count"]
+```
+
+The ADC and timer are external requirements; the signer and prover are host software in this prototype. For RTL testing, [`eeg_challenge`](rtl/eeg_challenge.sv) loads public vectors instead of a live ADC. The [verifier](proof/PROTOCOL.md) uses its own challenge, expected window count and pinned public keys; it never needs the private copy.
+
+## Trial placement
+
 ![Cell density and a magnified center detail from the actual Sky130 trial placement; not a routed layout.](proposal/placement.svg)
 
 **Hardware result:** the clocked RTL matched the independent reference for all 32 output bytes. The trial placement has positive setup and hold margins at **10 MHz in five checked libraries**. At 12 MHz the slow, cold library misses setup by **2.751 ns**. There is no fabricated chip, assigned slot or post-route sign-off. [Physical results](proposal/evidence.md#placement-and-timing) · [Exact margins (CSV)](proposal/timing.csv)
