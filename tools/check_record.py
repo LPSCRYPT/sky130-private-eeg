@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Verify test-recorded roots in RTL. For PUBLIC examples only: reads the witness."""
+"""Compare RTL roots for PUBLIC fixtures only: reads the witness, does not authenticate the manifest."""
 import argparse
 import os
 from pathlib import Path
 import struct
 import subprocess
 import tempfile
+
+# BLS12-381 scalar field. Check the full wire integer before the 255-bit RTL port.
+P = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001
 
 ap = argparse.ArgumentParser(description=__doc__)
 ap.add_argument('capture_dir', type=Path)
@@ -27,7 +30,10 @@ with tempfile.TemporaryDirectory() as tmp:
             rec = m[35+34*i:35+34*(i+1)]
             row = w[8+2032*i:8+2032*(i+1)]
             if le(rec[:2]) != i: raise SystemExit('nonsequential index')
-            print(f'{le(row[:32]):064x} {le(rec[2:]):064x}', file=f)
+            opening, root = le(row[:32]), le(rec[2:])
+            if opening >= P or root >= P:
+                raise SystemExit('noncanonical field opening or root')
+            print(f'{opening:064x} {root:064x}', file=f)
             for (slot,) in struct.iter_unpack('<I', row[32:]):
                 if slot and not 1<<24 <= slot < 1<<25: raise SystemExit('noncanonical slot')
                 print(f'{slot:07x}', file=f)

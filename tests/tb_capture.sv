@@ -55,14 +55,13 @@ module tb_capture;
         repeat (SLOT_PERIOD/4-1) advance();
         harness_cmd(command,value);
     endtask
-    task automatic load_fixture1;
+    task automatic header_start(input reg [15:0] idx, input reg [255:0] opening);
         reg [399:0] packet;
         integer i;
         begin
-            packet = {256'd101, 128'd42, 16'd1};
+            packet = {opening, 128'd42, idx};
             for (i=0; i<50; i=i+1) harness_cmd(0, packet[8*i +: 8]);
             harness_cmd(1, 0);
-            if ({harness_busy,harness_ready,harness_valid} !== 3'b110) $fatal(1, "loader start failed");
         end
     endtask
 
@@ -89,16 +88,19 @@ module tb_capture;
         end
     endtask
 
-    task automatic byte_fixture;
+    task automatic byte_fixture(input integer idx, input bit missing, input reg [254:0] expected);
         integer i, arm, last_tick;
         reg [23:0] raw;
         reg [255:0] collected;
         begin
-            load_fixture1(); arm=cycles;
+            header_start(idx[15:0], idx == 1 ? 256'd101 : 256'd100);
+            if ({harness_busy,harness_ready,harness_valid} !== 3'b110) $fatal(1, "loader start failed");
+            arm=cycles;
             for (i=0; i<500; i=i+1) begin
                 if (harness_ready !== 1'b1 || harness_valid !== 1'b0) $fatal(1, "loader slot %0d not serviceable", i);
-                raw = fixture_sample(i,1);
-                bench_phase(2,raw[7:0]); bench_phase(2,raw[15:8]); bench_phase(2,raw[23:16]); bench_phase(3,0);
+                raw = missing && i == 7 ? 24'hdeadbe : fixture_sample(i,idx);
+                bench_phase(2,raw[7:0]); bench_phase(2,raw[15:8]); bench_phase(2,raw[23:16]);
+                bench_phase(missing && i == 7 ? 3'd4 : 3'd3,0);
             end
             last_tick=cycles;
             if (last_tick-arm != 500*SLOT_PERIOD || harness_ready !== 1'b0 || harness_busy !== 1'b1)
@@ -109,7 +111,7 @@ module tb_capture;
             for (i=0; i<32; i=i+1) begin
                 harness_cmd(5,i[7:0]); collected[8*i +: 8]=dout;
             end
-            if (collected !== {1'b0,expected1}) $fatal(1, "harness root=%064h expected=%064h", collected, expected1);
+            if (collected !== {1'b0,expected}) $fatal(1, "harness root=%064h expected=%064h", collected, expected);
             $display("PASS byte harness slots=500 clocks_per_command=%0d last_tick_to_root=%0d root=%064h", SLOT_PERIOD/4, FINAL_TAIL, collected);
         end
     endtask
@@ -119,7 +121,8 @@ module tb_capture;
         if (!$value$plusargs("ROOT0=%h",expected0) || !$value$plusargs("ROOT1=%h",expected1) ||
             !$value$plusargs("ROOT_MISSING=%h",expected_missing))
             $fatal(1, "supply independent +ROOT0=<hex> +ROOT1=<hex> +ROOT_MISSING=<hex>");
-        if (expected0 === expected1 || expected0 === expected_missing) $fatal(1, "distinct roots required");
+        if (expected0 === expected1 || expected0 === expected_missing || expected1 === expected_missing)
+            $fatal(1, "distinct roots required");
         advance(); rst=0; must_be_empty();
         blind=P; start=1; advance(); start=0; must_be_empty(); blind=100;
         // Start and tick cannot coincide. A second start cannot replace an active window.
@@ -144,9 +147,21 @@ module tb_capture;
         rst=1; advance(); must_be_empty();
 
         harness_rst=0;
-        load_fixture1(); harness_cmd(2,8'h12); harness_cmd(3,0);
+        // The wire opening is 32 bytes: reject both the modulus and bit 255.
+        header_start(0,{1'b0,P});
+        if ({harness_busy,harness_ready,harness_valid,dout} !== 0) $fatal(1, "opening equal to p accepted");
+        header_start(0,256'd1 << 255);
+        if ({harness_busy,harness_ready,harness_valid,dout} !== 0) $fatal(1, "high opening bit truncated");
+        header_start(1,101); harness_cmd(4,0);
+        if ({harness_busy,harness_ready,harness_valid} !== 3'b110) $fatal(1, "unstaged missing tick rejected");
+        harness_cmd(2,8'h12); harness_cmd(4,0);
+        if ({harness_busy,harness_ready,harness_valid,dout} !== 0) $fatal(1, "partial missing tick accepted");
+        header_start(1,101); harness_cmd(2,8'h12); harness_cmd(3,0);
         if ({harness_busy,harness_ready,harness_valid,dout} !== 0) $fatal(1, "malformed present tick accepted");
-        byte_fixture(); harness_rst=1; advance();
+        byte_fixture(0,0,expected0);
+        byte_fixture(1,0,expected1);
+        byte_fixture(0,1,expected_missing);
+        harness_rst=1; advance();
         if ({harness_busy,harness_ready,harness_valid,dout} !== 0) $fatal(1, "harness reset did not wipe");
         $display("PASS all capture, reset, overrun and wrapper checks");
         $finish;

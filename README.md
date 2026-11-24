@@ -33,7 +33,7 @@ The verifier reads two public keys, a recorded challenge and a 77,607-byte proof
 |---|---|
 | The reusable block, not the shuttle fixture | [`eeg_capture.sv`](rtl/eeg_capture.sv) and the [signal contract](rtl/INTERFACE.md) |
 | Pad request, electrical targets and measurement plan | [Proposal](proposal/proposal.md#io-and-test-limits) and [bench procedure](proposal/measurement.md) |
-| Open tools and independent test vectors | [Reproduction guide](REPRODUCE.md) |
+| What was independently reproduced from the release sources | [Proposal-stage audit and limits](proposal/AUDIT.md) · [Run the checks](REPRODUCE.md) |
 | Contest fit and outstanding filing items | [Rules review and precedents](proposal/FILING.md) |
 
 Original design and software: [Apache-2.0](LICENSE). Recorded test data: [PhysioNet attribution and separate license](examples/oz/attribution.json). Bench signals only; no connection to a person.

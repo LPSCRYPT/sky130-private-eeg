@@ -4,7 +4,7 @@
 
 An EEG study sometimes needs a count, not a recording: *how many two-second windows had every sample present and fewer than five clipped readings?* A researcher could compute that number by collecting the whole waveform. Here the recorder commits to the samples as they arrive. Later, the researcher can check the count without receiving them.
 
-**The proposed silicon has one job.** On each of 500 scheduled ticks it accepts a 24-bit digitized sample or a missing-conversion flag. It mixes the ordered sequence with a fresh private random value and emits a 32-byte commitment called the *root*. A valid zero reading is different from a missing conversion. The private randomness prevents a verifier from checking waveform guesses against the root alone.
+**The proposed silicon has one job.** On each of 500 scheduled ticks it accepts a 24-bit digitized sample or a missing-conversion flag. It mixes the ordered sequence with a fresh private random value and emits a 32-byte commitment called the *root*. A valid zero reading differs from a missing conversion. Hiding the samples assumes secret, unpredictable randomness and a secure commitment construction; the public test fixture provides neither a secret input bus nor an on-chip random source.
 
 ![Only the commitment engine and its public-data test wrapper are proposed for the shuttle. Acquisition, signing and proof generation are separate jobs.](boundary.svg)
 
@@ -27,7 +27,7 @@ The input tick means *a conversion was due*, not *a packet arrived*. A trusted t
 
 The example rule, **QC01**, counts a window only if all 500 slots are present and at most four raw codes equal either signed rail (−8,388,608 or +8,388,607). A fifth rail sample fails the window. This tests digital clipping and completeness; it says nothing about electrode contact, signal quality in general or a participant’s intent.
 
-Outside the proposed IP, a recorder signs the ordered roots. A zero-knowledge proof checks each window against its root and adds either zero or one to a hidden running count. The verifier checks every link, a starting count of zero and the final total. It supplies its own expected challenge, session length, recorder identity and proof-verification key. Omitting a window or changing the total breaks verification.
+Outside the proposed IP, a recorder signs the ordered roots. The example proof checks each window against its root and adds zero or one to a hidden count. The verifier checks every link, the initial zero and the final total using its own expected challenge, length, recorder identity and circuit key. That key fixes QC01: the observer cannot run an arbitrary query. Another rule needs a different approved circuit and key.
 
 The observer receives the total, not a separate pass flag for each window. A count of zero or a perfect score nevertheless reveals every outcome. A signature authenticates the recorder’s assertion; it does not establish that the source was a person or that capture was continuous.
 

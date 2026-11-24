@@ -11,10 +11,10 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--drop-slot', type=int, choices=range(1000), metavar='0..999',
                     help='inject one explicit missing conversion into the replay')
 args = parser.parse_args()
-if sha256(source.read_bytes()).hexdigest() != 'bc2e0c6320aabdbf6a39b248b57158143a956ae21b363467e51ce10e121007f1':
+recording = source.read_bytes()
+if sha256(recording).hexdigest() != 'bc2e0c6320aabdbf6a39b248b57158143a956ae21b363467e51ce10e121007f1':
     raise SystemExit('unexpected recording hash')
-with source.open() as f:
-    rows = list(csv.DictReader(f))
+rows = list(csv.DictReader(recording.decode('ascii').splitlines()))
 if len(rows) != 640 or any(Decimal(r['t_s']) * 160 != i for i, r in enumerate(rows)):
     raise SystemExit('expected a complete 4 s recording at 160 Hz')
 # A held sample (not new information), with a chosen bench LSB of 1 nV.

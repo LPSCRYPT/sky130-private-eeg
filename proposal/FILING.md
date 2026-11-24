@@ -16,6 +16,8 @@ Ask the organizer three concrete questions: Will they consider a late, entirely 
 | Designer CVs | Required separately when filing; not included or approved. No designer or institution is named in the proposal PDF. |
 | Reuse, reproduction, open source | [Source instructions](../REPRODUCE.md), [license](../LICENSE), locked dependencies, HDL, proof and verifier examples, test vectors, bench protocol. |
 
+The [release audit](AUDIT.md) records the page-by-page Rule 6 map, clean-build checks and failures the proposal does not claim to resolve. The organizer's [interest survey](https://forms.gle/bsKn8W44M9gQoc2R6) is separate from the proposal email.
+
 If late filing is permitted, send the anonymous PDF, separate equipment list and approved CVs to `chipalooza@opencircuitdesign.com` under the [filing instructions](https://opencircuitdesign.com/chipalooza/get-involved.html). Publication is not submission.
 
 Rules 16, 18–20 and 23–25 matter after proposal review: adopt the Sky130 wrapper/template when available, provide separate reusable and slot layouts, DRC/LVS and extracted PVT results, then publish measurements. None is replaced by the current pre-route placement or a software proof. The pre-layout, post-layout and integration reviews are scheduled for the weeks of December 28, February 1 and February 22 respectively.

@@ -1,8 +1,8 @@
 @page {
   size: A4; margin: 18mm 18mm 18mm;
-  @top-right {content: 'CHIPALOOZA 04    /    SKY130'; font: 8pt sans-serif; color: #4a6468}
-  @bottom-left {content: 'EEG window commitment core   /   Written proposal'; font: 8pt sans-serif; color: #4a6468}
-  @bottom-right {content: counter(page) ' / ' counter(pages); font: 8pt sans-serif; color: #4a6468}
+  @top-right {content: 'CHIPALOOZA 04    /    SKY130'; font: 8pt 'DejaVu Sans'; color: #4a6468}
+  @bottom-left {content: 'EEG window commitment core   /   Written proposal'; font: 8pt 'DejaVu Sans'; color: #4a6468}
+  @bottom-right {content: counter(page) ' / ' counter(pages); font: 8pt 'DejaVu Sans'; color: #4a6468}
 }
 body {font: 10.4pt/1.39 'DejaVu Sans', sans-serif; color: #1b3039}
 h1, h2, h3 {color: #164e53; line-height: 1.15; break-after: avoid}
@@ -21,5 +21,5 @@ td, th {text-align: left; vertical-align: top; border-bottom: 1px solid #bfceca;
 thead {background: #e4efeb; color: #1a4647}
 td p {margin: 0}
 tr {break-inside: avoid}
-code {font-size: 91%; overflow-wrap: anywhere}
+code {font-family: 'DejaVu Sans Mono', monospace; font-size: 91%; overflow-wrap: anywhere}
 a {color: #126166}

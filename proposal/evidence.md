@@ -6,11 +6,11 @@
 
 The input is four seconds from the [PhysioNet EEG Motor Movement/Imagery Dataset](https://doi.org/10.13026/C28G6P), S001 R02, channel Oz. The test holds the 160 Hz input on a 250 Hz schedule and marks slot 610 missing. Both 500-slot roots from the simulated RTL matched the software recorder’s signed manifest bit for bit. The observer verified **1 of 2 windows passed** without opening either one. This is replay of an attributed recording, not live acquisition.
 
-**Hardware bench.** Three independent known answers cover both signed rails and a missing slot carrying a nonzero value on the ignored data bus. Reset, overrun, malformed commands and a noncanonical opening produced no valid root. On the byte wrapper, 500 slots with one strobed command every 5,500 clocks yielded the exact reference root. At 22,000 clocks per slot the last tick to `root_valid` took **212,993 clocks**: 38.73 ms at 5.5 MHz. Polling a host register cannot measure that edge precisely.
+**Hardware bench.** The software oracle reproduced three frozen answers covering both signed rails and a missing slot. The byte wrapper matched all 32 bytes of each root, including the missing slot with nonzero data on the ignored bus. Reset, overrun, malformed commands and a noncanonical opening produced no valid root. With one strobed command every 5,500 clocks (22,000 per slot), the last tick to `root_valid` took **212,993 clocks**: 38.73 ms at 5.5 MHz. Slow polling cannot measure that edge precisely.
 
 **Longer session.** In a separate ten-minute synthetic test, 15 windows had five rail samples and 14 others had a missing conversion. The laptop verified **271 of 300**. The bundle was 77,607 bytes, including one 192-byte Groth16 proof per window. Proving took 189.11 s and verification 0.50 s on an arm64 workstation with four Rayon workers; prover peak RSS was 385,990,656 bytes. These are host measurements, not on-chip benchmarks.
 
-The verifier rejected a different challenge, device key, policy, root or total, and rejected omitted or swapped proofs. The public examples use development keys. Rechecking an archived receipt under its original challenge is intentional; a live observer must issue and retire fresh challenges.
+The verifier rejected a different challenge, device key, policy, root or total, and rejected omitted or swapped proofs. These are development keys. Archived receipts verify under their original challenge; live observers must issue and retire fresh challenges. The public EEG and synthetic fixtures let readers recompute individual outcomes. A receipt authenticates the recorder's signed roots, not the provenance of a named dataset.
 
 <div class="newpage"></div>
 
