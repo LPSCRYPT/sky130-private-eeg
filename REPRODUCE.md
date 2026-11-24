@@ -73,6 +73,6 @@ python3 tools/plot_replay.py  # regenerate the public EEG input figure, includin
 sh tools/build_proposal.sh  # Pandoc, WeasyPrint, Fontconfig, DejaVu Sans and Sans Mono
 ```
 
-The release PDF uses Pandoc 3.8.2, WeasyPrint 68.1 and DejaVu fonts. On Debian/Ubuntu the font package is `fonts-dejavu-core`. The builder rejects font substitution or missing figures instead of silently publishing a different document. Renderer and font versions can affect PDF bytes; use the GitHub release asset digest to verify the distributed copy.
+The release PDF was built with Pandoc 3.8.2, WeasyPrint 68.1 and DejaVu fonts (`fonts-dejavu-core` on Debian/Ubuntu).
 
 `params/` comes from the version-pinned arkworks Grain-LFSR routine for BLS12-381 Fr: width 3, eight full rounds, 57 partial rounds, first MDS candidate. The protocol and its implementation have not had an independent cryptographic audit. The hardware test bus and the host's development key files are not secure recorder interfaces.

@@ -38,7 +38,7 @@ Malformed wrapper commands synchronously clear the wrapper and core. The core al
 | 12 held control bits | Inputs | `rst`, `op[2:0]`, `din[7:0]` |
 | 11 sense bits | Outputs | `dout[7:0]`, `busy`, `ready`, `root_valid` |
 
-[Challenge #4 rules 7, 10, 20–21](https://opencircuitdesign.com/chipalooza/rules-4.html) allow up to 24 controls, 12 test outputs and three dedicated pads. They do not specify a clock rate or assign pins. The [Challenge #2 harness](https://opencircuitdesign.com/chipalooza/challenge-2.html) used SPI control/readback; its framing, speed and pinout are not a Sky130 specification. This request uses no analog bus, reference or third pad. Before applying signals, confirm the slot mux, protected 3.3 V-periphery/1.8 V-core digital pad path, clock/strobe skew, sequencing and legal levels. Never drive a core net with 3.3 V.
+[Challenge #4](https://opencircuitdesign.com/chipalooza/rules-4.html) allows up to 24 controls, 12 test outputs and three dedicated pads. It does not specify a bus rate or assign pins. This block requests no analog bus or reference. Before power-up, confirm the slot mux, protected 3.3 V pad to 1.8 V core path, clock/strobe skew, sequencing and legal levels. Never drive a core net with 3.3 V.
 
 With `strobe=0`, set the selected slot’s held controls and let all writes finish and signals settle. Pulse `strobe` across exactly one rising edge, for example by asserting and releasing it on the surrounding falling edges, subject to integrated pad-to-core setup and hold. Hold `op` and `din` stable through hold time. Change `rst` with the clock stopped low; let it settle before resuming. For slow readback, end a counted clock burst low and read stable status. A software poll cannot locate the publication edge.
 

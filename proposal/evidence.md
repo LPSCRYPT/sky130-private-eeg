@@ -1,14 +1,16 @@
 <div class="newpage"></div>
 
-## A four-second EEG replay
+## Replaying an EEG recording
 
-![Four seconds from channel Oz, with one conversion deliberately withheld in the second window. The gap belongs to the test stimulus, not to the original recording.](replay.svg)
+We took four seconds from channel Oz in the [PhysioNet EEG Motor Movement/Imagery Dataset](https://doi.org/10.13026/C28G6P) (S001 R02, 10–14 s). The original recording runs at 160 Hz. To drive the 250 Hz test interface, we held each reading until the next arrived. We then withheld one conversion, slot 610, in the second window.
 
-We replayed S001 R02 from the [PhysioNet EEG Motor Movement/Imagery Dataset](https://doi.org/10.13026/C28G6P), holding each 160 Hz reading on the 250 Hz schedule and marking slot 610 missing. Both simulated hardware roots matched the software recorder’s signed roots bit for bit. Using those roots and the proof, the laptop verified that **1 of 2 windows passed QC01**. The waveform was not a verifier input. It is public here so anyone can repeat the experiment.
+![Input used for the replay. The marked gap was added for this test; it is not in the original recording.](replay.svg)
 
-### Does the chip commit to the right samples?
+The laptop reported **1 of 2 windows passed**. It used the proof bundle, not the waveform shown here. We checked the hardware separately: the simulated chip produced the same two roots, byte for byte, as the software that signed the recording.
 
-We fed three known windows through the byte-wide test port and compared every output byte with an independent integer implementation. The inputs were chosen to distinguish a quality decision from the commitment itself. The core always returns a root for a complete sequence of scheduled ticks, even when the quality rule fails.
+### Three checks on the sample bus
+
+We also sent three known sequences through the chip’s byte-wide test port. An independent integer implementation supplied the expected roots. A window can fail QC01 and still produce the right root: the chip must commit to what arrived, including bad readings.
 
 | Window supplied to the core | Quality decision in software | Hardware result |
 |---|---|---|
@@ -16,22 +18,22 @@ We fed three known windows through the byte-wide test port and compared every ou
 | Index 1, five readings at the positive rail | Fail: too many rail readings | All 32 bytes matched |
 | Index 0 as above, but slot 7 is missing | Fail: incomplete window | All 32 bytes matched; different root from the first window |
 
-The missing-slot root matched even with nonzero ignored bus data. Reset, overrun, malformed commands and a noncanonical opening produced no valid root. At 5,500 clocks/command and 22,000 clocks/slot, the simulation took 212,993 clocks from the last tick to `root_valid` (38.73 ms at 5.5 MHz).
+For the missing slot we left nonzero data on the bus. The root still matched: the missing flag, not the unused data, determined what the chip recorded. Reset or overrun during capture, a malformed command, or an out-of-range opening left no valid root.
 
 ### Ten minutes of synthetic input
 
-Fifteen windows had five rail samples; 14 others had a missing conversion. The laptop verified **271 of 300**. The 77,607-byte bundle included one 192-byte Groth16 proof per window. On an arm64 workstation with four Rayon workers, proving took 189.11 s (peak RSS 385,990,656 bytes); verification took 0.50 s.
+We generated 300 windows. Fifteen contained five clipped readings each; another 14 were missing one conversion each. The verifier returned **271 of 300**. The bundle occupied 77,607 bytes, including 300 proofs of 192 bytes each. On an arm64 workstation with four worker threads, producing it took 189.11 s and 368 MiB of peak memory. Checking it took 0.50 s.
 
-The verifier rejected changed challenges, device keys, policies, roots and totals, and omitted or swapped proofs. The demo uses development keys. Archived proofs still verify for their original challenge; a live observer must issue and retire fresh challenges. Neither the proof nor the signature establishes the provenance of a public fixture.
+Changing the expected challenge or device key caused verification to fail, as did altering a root or total, or removing or swapping proofs. An unchanged bundle still verifies against its original challenge. A live observer must issue a fresh challenge and retire it after use.
 
 <div class="newpage"></div>
 
-## Physical design and timing
+## Placement and timing
 
-Before placement, the initial unbuffered netlist missed 12 MHz setup by 377.294 ns. Buffering high-fanout controls and resizing at the slow, cold corner brought the wrapper and core to 0.2654 mm² of standard cells. The placement rows cover 0.4574 mm²; the outer rectangle covers 0.4938 mm². It is the outer rectangle, not the sum of cell areas, that must fit a shuttle slot.
+The placed block measures about **703 × 703 µm**. Its outer rectangle is 0.4938 mm², below the proposed 0.55 mm² budget; there is no assigned slot yet. The standard cells occupy 0.2654 mm² within 0.4574 mm² of placement rows. The shuttle slot must fit the outer rectangle, not just the cells.
 
-![Estimated setup slack by library and clock. Negative slack means the logic misses the clock target. All estimated hold margins were positive, from 0.284 to 0.925 ns.](timing.svg)
+![Setup margin after placement. The square to the left of zero marks the missed 12 MHz target at −40 °C.](timing.svg)
 
-All five libraries met setup and hold at 10 MHz; the smallest setup margin was +13.916 ns. At the 12 MHz target, the −40 °C slow library missed setup by 2.751 ns. The 1.60 V libraries are guardband cases for the 1.62 V target. No 110 °C library was tested.
+The placed design **met 10 MHz in all five libraries**. The smallest setup margin was 13.916 ns. At the **12 MHz target**, the slow, −40 °C library missed setup by 2.751 ns; the other four passed. Hold margins ranged from 0.284 to 0.925 ns. The 1.60 V cases test slightly below the 1.62 V supply target. We have no result at +110 °C.
 
-The estimates assume an ideal clock, 3 ns external I/O delays, 0.02 pF loads and wire resistance and capacitance estimated from placement. There is no clock tree, routed or extracted timing, DRC/LVS result or silicon power measurement. These estimates and the host replay do not establish gapless capture.
+These are estimates after placement, not measurements from a chip. They include buffers on signals driving many cells, gate resizing, estimated wire resistance and capacitance, 3 ns of external I/O delay and 0.02 pF output loads. They assume an ideal clock. Clock-tree design, routing, extracted timing, physical rule checks (DRC), layout-to-schematic comparison (LVS) and silicon power measurements remain open.

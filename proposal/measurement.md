@@ -1,23 +1,25 @@
 <div class="newpage"></div>
 
-## Measuring the silicon
+## Silicon test plan
 
-Use public fixtures and a pattern generator, not electrodes. Request `clk` and synchronous `strobe` as dedicated inputs from the same generator. The slot also needs 12 held controls and 11 sense bits (page 3). Before driving it, confirm pin assignment, mux, current limits, sequencing and protected 3.3 V pad to 1.8 V core translation. Never drive a core net at 3.3 V. The [prior IHP harness](https://opencircuitdesign.com/chipalooza/challenge-2.html) used SPI; the [Sky130 resource count](https://opencircuitdesign.com/chipalooza/rules-4.html) does not specify write speed or edge timing.
+Use a pattern generator in place of electrodes. The test port exposes both the readings and the secret opening, so use public input sequences only. Before power-up, confirm the harness pinout, mux, current limits, supply sequence and voltage translation. Drive the dedicated clock and strobe from the same generator. The harness holds the 12 control bits and reads 11 output bits.
 
-### Known answers at low speed
+### Compare all 32 output bytes
 
-At 1 MHz, sample reset on a rising edge. Load 50 header bytes, least significant first within each field: two bytes of index, 16 of challenge, 32 of opening. Issue START. Send 500 slots, 22,000 clocks apart. For each slot, load three sample bytes then issue PRESENT, with commands spaced 5,500 clocks apart. For slot 7 of the missing-slot vector, stage `0xdeadbe` then issue MISSING instead. Keep strobe low while the core finishes.
+Start at 1 MHz. Reset on a rising edge. Load the 50-byte header least significant byte first within each field: index (2 bytes), challenge (16), opening (32). Issue START. For each present slot, send three sample bytes followed by PRESENT. Leave 5,500 clocks between commands and 22,000 clocks between slots. For slot 7 of the missing-slot test, load `0xdeadbe` but issue MISSING instead of PRESENT.
 
-Wait for `(busy, ready, root_valid) = (0,0,1)`. Address bytes 0–31, observing each registered response before the next read. Reassemble the bytes in little-endian order. Compare all 32 bytes for each of the three vectors on page 4, in order. The public integer oracle is `tools/reference_roots.py`; its frozen answers are in `tests/reference-roots.txt`.
+After the 500th slot, hold strobe low until `busy=0`, `ready=0` and `root_valid=1`. Read addresses 0 through 31, sampling each registered byte before the next read. Compare all 32 bytes against `tests/reference-roots.txt` for each of the three sequences. The independent calculation is in `tools/reference_roots.py`.
 
-### Sampling rate, finalization and recovery
+### Run at the EEG sample rate
 
-With a continuous clock, use 22,000 clocks/tick at 5.5 MHz, 40,000 at 10 MHz and 48,000 at the nominal 12 MHz. At each passing bin require 500 ticks, all 499 intervals exactly 4 ms within clock calibration, and the expected root. Log supply, temperature and repetitions; repeat at extremes only if authorized.
+Run a continuous clock. Space ticks 22,000 clocks apart at 5.5 MHz, 40,000 at 10 MHz and 48,000 at 12 MHz. An all-present window takes 2,083 strobes: 51 to configure and start, 2,000 to send samples and 32 to read the result. Each command must be stable across exactly one strobed rising edge. The four commands per sample give the harness **1 ms per write**, including settling.
 
-An all-present window takes 2,083 strobes: 51 for header/start, 2,000 for acquisition and 32 for read addresses. Pulse strobe across one rising edge per command. Synchronize the harness writer to the generator: each 4 ms slot requires four settled presentations, one per ms. Record write completions relative to the pulses, including mux settling and pad-to-core skew. Do not stretch an interval for software. A missed write deadline or unresolved setup/hold makes that rate test inconclusive. With verified stimulus, a wrong root, missing valid or rejected tick is a failure. Slow success does not establish 250 Hz operation.
+Record write times relative to strobe, clock calibration, supply, temperature and number of runs. A run passes only with the expected root and 500 accepted ticks separated by 499 intervals of 4 ms within clock calibration. If the harness misses a write deadline or the inputs are not demonstrably stable at the edge, the result is inconclusive. If the stimulus is correct and the chip rejects a tick, returns a wrong root or never asserts valid, it fails. Repeat at supply and temperature extremes only if authorized.
 
-At 22,000 clocks/tick, stop the clock low 212,992 rising edges after tick 499: valid must still be low. One more rising edge must publish the root. Use counted edges, not software polling. Record the gap through readout and rearming; finalization alone takes 38.73 ms at 5.5 MHz. Mid-window reset, PRESENT after a partial sample, or a tick while busy but not ready must leave no valid root. Require a fresh known answer after reset.
+### Count the clocks after the last sample
 
-### Active power
+At 22,000 clocks per tick, stop the clock low 212,992 rising edges after the last accepted tick. `root_valid` must still be low. Advance one edge: it must go high. That is 38.73 ms at 5.5 MHz before readout or restart. Count edges rather than polling from software; report the full gap through rearming separately. Try a mid-window reset, PRESENT after a partial sample, and a tick while busy but not ready. Each must leave no valid root. After reset, rerun a known sequence and check its root.
 
-At 12 MHz, measure average active rail power from START to root publication with a 250 Hz public fixture. Report rail voltage, current, integration interval and uncertainty. Measure idle at the same clock, rails, temperature and other-slot state. Active minus idle is not total active power. Compare with the ≤20 mW average active target only on an isolated macro supply, including uncertainty. A shared rail leaves the target unresolved.
+### Measure active power
+
+At 12 MHz, drive a 250 Hz test sequence. Measure average active rail power from START until `root_valid`; report rail voltage, current, interval and measurement uncertainty. Measure idle power at the same clock, voltage and temperature with other slots in the same state. Only an isolated core supply can test the 20 mW average active target directly. On a shared rail, report both readings: their difference is the change in board load, not the core’s total active power.

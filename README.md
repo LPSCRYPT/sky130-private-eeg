@@ -46,6 +46,5 @@ The design has been simulated, synthesized and placed, but not fabricated. In fi
 
 - [Hardware interface](rtl/INTERFACE.md) and [silicon measurement plan](proposal/measurement.md)
 - [Build and reproduce the results](REPRODUCE.md), including the [timing results](proposal/timing.csv) and [release audit](proposal/AUDIT.md)
-- [Chipalooza proposal requirements and filing status](proposal/FILING.md)
 
 The design and software are [Apache-2.0](LICENSE). The [public EEG excerpt](examples/oz/attribution.json) has separate attribution and licensing.
