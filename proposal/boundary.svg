@@ -1,21 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 252" role="img" aria-labelledby="title desc">
-<title id="title">What the Sky130 core commits</title>
-<desc id="desc">A digitizer and timer supply a code and a present flag at each tick. The core packs ten slots at a time and uses one field multiplier for the Poseidon permutation. The only data result is a 32-byte root. Signing and proving are separate.</desc>
-<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#446369"/></marker></defs>
-<rect width="800" height="252" rx="9" fill="#f7faf9"/>
-<g font-family="DejaVu Sans,sans-serif" fill="#1f3941">
-<text x="20" y="30" font-size="18" font-weight="bold">At the digitizer output</text>
-<text x="779" y="30" text-anchor="end" font-size="14">One channel · 250 slots/s</text>
-<rect x="178" y="52" width="432" height="138" rx="8" fill="#e6f2ee" stroke="#51827a"/>
-<text x="192" y="78" font-weight="bold" font-size="15">eeg_capture · proposed Sky130 block</text>
-<g fill="white" stroke="#779891"><rect x="193" y="94" width="167" height="57" rx="4"/><rect x="391" y="94" width="200" height="57" rx="4"/></g>
-<g text-anchor="middle" font-size="15"><text x="91" y="112">24-bit ADC code</text><text x="91" y="132">+ present flag</text>
-<text x="276" y="118" font-weight="bold">Pack 10 slots</text><text x="276" y="138">250 bits per word</text>
-<text x="491" y="118" font-weight="bold">Poseidon permutation</text><text x="491" y="138">One shared multiplier</text>
-<text x="705" y="114" font-weight="bold">32-byte root</text><text x="705" y="135">+ valid signal</text></g>
-<g fill="none" stroke="#446369" stroke-width="2" marker-end="url(#arrow)"><path d="M154 121h36"/><path d="M361 121h26"/><path d="M593 121h50"/></g>
-<text x="194" y="175" font-size="14">Start: challenge, window index and private opening</text>
-<path d="M20 204h760" stroke="#b9cdca"/>
-<text x="20" y="226" font-weight="bold" font-size="14">Outside the proposed block</text>
-<text x="248" y="226" font-size="14">The recorder signs the roots; the prover uses the private samples.</text>
-</g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 876 217" role="img" aria-labelledby="title desc">
+<title id="title">How the observer checks a count without the samples</title>
+<desc id="desc">ADC readings and missing flags go to the Sky130 commitment core and to the owner. A separate recorder signer authenticates the roots. Owner software uses private samples and openings to make a proof. Only the signed roots and proof bundle are needed at the observer’s laptop.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#47636c"/></marker></defs>
+<rect width="876" height="217" fill="#f5f8f7"/>
+<path d="M645 14v188" fill="none" stroke="#b5c4c5" stroke-dasharray="4 4"/>
+<g font-family="DejaVu Sans,sans-serif" fill="#203943">
+<g font-size="16" font-weight="bold"><text x="18" y="31">Recorder and owner</text><text x="670" y="31">Observer</text></g>
+<g fill="white" stroke="#92a6a8"><rect x="18" y="53" width="122" height="59" rx="3"/><rect x="426" y="53" width="116" height="59" rx="3"/><rect x="174" y="140" width="277" height="60" rx="3"/><rect x="670" y="53" width="187" height="147" rx="3"/></g>
+<rect x="174" y="53" width="190" height="59" rx="3" fill="#d9ebe4" stroke="#35716b" stroke-width="2"/>
+<g fill="none" stroke="#47636c" stroke-width="1.8" marker-end="url(#arrow)"><path d="M140 83h30"/><path d="M364 83h58"/><path d="M542 83h124"/><path d="M78 112v58h92"/><path d="M451 170h215"/></g>
+<g text-anchor="middle" font-size="16">
+<text x="79" y="78">ADC + timer</text><text x="79" y="99" font-size="14">code + flag</text>
+<text x="269" y="78" font-weight="bold">Commitment core</text><text x="269" y="99" font-size="14">500 slots per window</text>
+<text x="395" y="74" font-size="14">root</text><text x="484" y="78">Recorder</text><text x="484" y="99">signer</text>
+<text x="602" y="74" font-size="14">signed roots</text>
+<text x="312" y="166" font-weight="bold">Owner’s proving software</text><text x="312" y="187" font-size="14">private slots + secret openings</text>
+<text x="555" y="161" font-size="14">QC01 proof + total</text>
+<text x="763" y="110" font-weight="bold">Laptop verifier</text><text x="763" y="138" font-size="14">Checks signature,</text><text x="763" y="158" font-size="14">proofs and count</text>
+</g></g></svg>

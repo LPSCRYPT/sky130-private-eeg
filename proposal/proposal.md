@@ -1,47 +1,51 @@
-# A commitment core for EEG recorders
+# Private EEG verification
 
-**Chipalooza Challenge #4 · Sky130 · Digital IP for the ADC output bus**
+<p class="subtitle">A recorder-side cryptographic module for digitized EEG</p>
 
-An EEG study sometimes needs a count, not a recording: *how many two-second windows had every sample present and fewer than five clipped readings?* A researcher could compute that number by collecting the whole waveform. Here the recorder commits to the samples as they arrive. Later, the researcher can check the count without receiving them.
+The owner of an EEG recording can use this module to prove a claim about the recording without handing a researcher the waveform. Hardware in the recorder commits to the digitized samples as they arrive. Later, the owner’s software uses those samples to produce a proof, and the researcher checks it on a laptop.
 
-**The proposed silicon has one job.** On each of 500 scheduled ticks it accepts a 24-bit digitized sample or a missing-conversion flag. It mixes the ordered sequence with a fresh private random value and emits a 32-byte commitment called the *root*. A valid zero reading differs from a missing conversion. Hiding the samples assumes secret, unpredictable randomness and a secure commitment construction; the public test fixture provides neither a secret input bus nor an on-chip random source.
+The proposed Sky130 digital block sits on the output of an analog-to-digital converter (ADC). For each window of 500 scheduled conversions it combines the readings, including any missing flags, with a fresh secret random value. The 32-byte result is a *commitment*, or root. It fixes the sequence without publishing it: the owner can later show that the sequence fits the root, but cannot feasibly substitute a different one. Someone with just the root cannot test a guess about the waveform without also guessing the secret.
 
-![Only the commitment engine and its public-data test wrapper are proposed for the shuttle. Acquisition, signing and proof generation are separate jobs.](boundary.svg)
+![The shaded core is the proposed hardware; its bench wrapper is not shown. The observer receives signed roots and a proof bundle, not the inputs to the owner’s proving software.](boundary.svg)
 
-**Why put it next to the ADC?** Firmware could compute the same function. A reusable hardware block gives a recorder a fixed point on the sample bus where a missing conversion is accounted for before an application can discard the window. It still needs a trustworthy clock, ADC and signer. This proposal is not an amplifier, digitizer, secure element or on-chip prover.
+For example, a researcher may need only the number of two-second windows with every sample present and no more than four readings at the converter’s limits. The recorder signs the ordered roots. Using the samples and secret openings, the owner produces a *zero-knowledge proof* that the stated count follows from those same roots. The researcher, acting as the observer, checks the signature and proof without receiving the waveform. This counting rule, QC01, is the only claim implemented.
 
-**The silicon experiment:** drive the block with a known sequence at 250 slots/s, change one conversion from present to missing, then read back the predicted root in each case. Measure the clock margin and the delay before another window can start. The laptop proof is a consumer of those roots, not the outcome of that electrical test. All testing uses bench signals.
+## The silicon experiment
 
-<div class="newpage"></div>
-
-## From sample tick to root
-
-The input tick means *a conversion was due*, not *a packet arrived*. A trusted timer supplies 500 ticks per window. On a tick without a conversion, the core commits an explicit missing slot. It cannot detect a stopped external clock or tell whether a sensor supplied the data.
-
-1. Start with a 128-bit verifier challenge, a 16-bit zero-based index and a fresh secret field element. Never reuse openings between windows. For fixed public tests only, openings may be known. Start and data commands are separate clock events.
-2. For a present reading encode `2^24 + unsigned(raw24)`; encode zero for missing, ignoring bus data. Pack ten successive 25-bit codes into one field word, earliest in the least significant bits. All 250-bit packed words fit the field without reduction. Exactly 50 words per window.
-3. The field is the BLS12-381 scalar field. Initialize a three-element state with `0x45454701 + index × 2^32`, challenge interpreted as a little-endian unsigned integer, and the blind. Permute once. For each packed word add it to state element zero in the field and permute again. Emit only final element zero. Use Poseidon with eight full rounds, 57 partial rounds, exponent five and versioned constants. The input length and domain are fixed; this is not a general-purpose variable-length hash API.
-4. Read the root only when `root_valid` is high. Reset, a conflicting start or an unserviceable tick while busy aborts the window without publishing a root. A new window cannot start until the previous one finishes. A recorder that needs gapless acquisition must buffer incoming slots privately during this handoff.
-
-### What the laptop learns
-
-The example rule, **QC01**, counts a window only if all 500 slots are present and at most four raw codes equal either signed rail (−8,388,608 or +8,388,607). A fifth rail sample fails the window. This tests digital clipping and completeness; it says nothing about electrode contact, signal quality in general or a participant’s intent.
-
-Outside the proposed IP, a recorder signs the ordered roots. The example proof checks each window against its root and adds zero or one to a hidden count. The verifier checks every link, the initial zero and the final total using its own expected challenge, length, recorder identity and circuit key. That key fixes QC01: the observer cannot run an arbitrary query. Another rule needs a different approved circuit and key.
-
-The observer receives the total, not a separate pass flag for each window. A count of zero or a perfect score nevertheless reveals every outcome. A signature authenticates the recorder’s assertion; it does not establish that the source was a person or that capture was continuous.
+Run one known sequence at 250 slots/s, replace one conversion with a missing flag, and compare the two roots with predictions. Measure the clock margin and the time needed to finish a window. Placing this function on the sample bus gives a recorder a fixed place to account for missing conversions before application software sees the stream. The chip is neither a certified recorder nor a trusted execution environment. It contains no ADC, entropy source, signer or prover. Its test wrapper exposes its inputs and is for public bench signals only.
 
 <div class="newpage"></div>
 
-## I/O and test limits
+## From the sample bus to the proof
+
+### Capturing a window
+
+One channel supplies signed 24-bit readings. A timer issues 500 ticks per window: a tick means a conversion was due, not that a packet arrived. At each tick the core records either a reading or a missing conversion. It distinguishes a valid reading of zero from a missing slot, but it cannot detect a stopped external timer.
+
+1. On a separate start edge, load a 128-bit verifier challenge, a 16-bit zero-based window index and a fresh secret field element (the opening). The challenge is public; it cannot substitute for the opening. Only fixed public tests may use known openings.
+2. Encode a present reading as `2^24 + unsigned(raw24)`; encode a missing slot as zero regardless of bus data. Pack ten successive 25-bit codes into one field word, earliest in the least significant bits. The resulting 50 words are each 250 bits and fit without reduction.
+3. In the BLS12-381 scalar field, initialize the three-element state with `0x45454701 + index × 2^32`, the little-endian challenge integer and the opening. Apply the Poseidon permutation once. Add each packed word to element zero in the field and permute again. One shared multiplier implements the permutation: eight full rounds, 57 partial rounds, exponent five and versioned constants. The length and domain are fixed. The root is final element zero.
+4. Read only when `root_valid` is high. A reset, conflicting start or unserviceable tick while busy aborts the window without a valid root. A new window must wait for finalization. Gapless capture would require a private buffer across finalization and rearming, outside this block.
+
+### Checking the count
+
+QC01 counts a window if all 500 slots are present and at most four readings equal a signed rail (−8,388,608 or +8,388,607). A fifth rail reading fails the window; a near-rail reading is not a rail hit. This measures completeness and digital clipping, not electrode contact or clinical signal quality.
+
+For each signed root the owner proves two things together: the private slots and opening reproduce that root, and applying QC01 adds the correct zero or one to the running count. Commitments hide the intermediate counts and link consecutive proofs. The observer checks the links, the initial zero and the final total against an independently expected session length, challenge, recorder public key and QC01 circuit key. A different claim would require another approved circuit and key.
+
+The observer learns the total, session length and recorder identity, but receives no per-window flags. A total of zero or a perfect score still reveals every outcome. The signature authenticates the recorder’s assertion about a digital sequence. It does not establish a human source, honest sampling or uninterrupted capture.
+
+<div class="newpage"></div>
+
+## Interfaces and operating targets
 
 | Boundary | Inputs | Outputs |
 |-----------|---------------------------|----------------------|
-| Reusable IP | Clock, synchronous active-high reset, start; nonce[127:0], index[15:0], blind[254:0]; slot tick, sample present, raw[23:0]. | Busy, ready, root-valid, root[254:0] (32 bytes padded). No raw, pass flag or blind readback. |
-| Test wrapper | 2 dedicated digital input pads requested: `clk`, synchronous `strobe`. 12 held controls: `rst`, `op[2:0]`, `din[7:0]`. | 11 sense bits: `dout[7:0]`, `busy`, `ready`, `root_valid`. |
-| Supplies and pads | 1.8 V digital core and ground. Standard protected digital pads for the 3.3 V periphery; no shared analog lines, reference currents or low-resistance path requested. | No package pins are assigned. The organizer must confirm two pads, the slot outline and control-bus latency. |
+| Capture core | Clock, synchronous active-high reset, start; challenge[127:0], index[15:0], blind[254:0]; slot tick, sample present, raw[23:0]. | Busy, ready, root-valid, root[254:0] (32 bytes padded). No sample, pass flag or opening readback. |
+| Test wrapper | Two dedicated digital inputs requested: `clk`, synchronous `strobe`. Twelve held controls: `rst`, `op[2:0]`, `din[7:0]`. | Eleven sense bits: `dout[7:0]`, `busy`, `ready`, `root_valid`. |
+| Supplies and pads | 1.8 V core and ground; standard protected digital pads for the 3.3 V periphery. No shared analog line, reference current or low-resistance path requested. | Package pins are unassigned. The organizer must confirm the two pads, slot outline and control-bus latency. |
 
-**One command per strobed edge.** A pattern generator supplies clock and strobe; the harness holds the command and data stable. Holding strobe high repeats a command. The test loader makes the stimulus and opening visible; it is for public vectors, not a patient interface or a production debugging port.
+The pattern generator supplies clock and strobe while the harness holds the command and data stable. A high strobe executes a command on *every* rising edge. This byte-wide interface makes both the sample and its opening visible; a private recorder would use the capture core directly.
 
 | Target / condition | Minimum | Nominal | Maximum / limit |
 |--------------------|----------:|----------:|-----------------:|
@@ -50,10 +54,12 @@ The observer receives the total, not a separate pass flag for each window. A cou
 | Application sample slots/s in window | 250 | 250 | 250 (fixed profile) |
 | Scheduled slots/window; duration | 500; 2 s | 500; 2 s | 500; 2 s |
 | Core clock within a window | 5.325 MHz arithmetic service floor | 12 MHz target | Silicon maximum unmeasured |
-| Encoded input, present | −8,388,608 | signal dependent | +8,388,607 |
+| Present input, signed 24-bit code | −8,388,608 | signal dependent | +8,388,607 |
 | Session count reported, for N authenticated windows | 0 | input dependent | N; demo tool N ≤ 65,535 |
 | Normal root output / complete window | 32 B | 32 B | 32 B |
 | Standalone trial footprint (mm²) | — | 0.4938 outer rectangle | 0.55 budget; slot not assigned |
 | Core power, 12 MHz QA workload | — | — | 20 mW average active target; unmeasured |
 
-**Absolute test limits:** only drive a powered core, between VSS and actual VDD. No direct 3.3 V signals. Do not exceed 1.98 V or the stated temperature range. These are test limits, not foundry stress or ESD ratings; confirm package pin, current and sequencing ratings with the harness owner before power-up. No silicon ratings, slot assignment or power measurement are claimed.
+### Absolute test limits
+
+Drive a powered core only, between VSS and its actual VDD; never apply 3.3 V to a core net. Do not exceed 1.98 V or the stated temperature range. These are test limits, not foundry stress or ESD ratings. Confirm package pin ratings, current limits and power sequencing with the harness owner before power-up.

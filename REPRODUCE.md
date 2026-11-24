@@ -14,11 +14,10 @@ docker run --rm -d --name eeg-quality -v "$PWD:/foss/designs" "$img" --wait
 eda() { docker exec -w /foss/designs eeg-quality bash -lc 'exec "$@"' eda "$@"; }
 eda sh tools/check_capture.sh
 eda sh tools/rebuild_placement.sh
-eda python3 tools/render_chip.py
 docker stop eeg-quality
 ```
 
-`check_capture.sh` checks the parallel and byte-wide inputs against three fixed reference outputs. `rebuild_placement.sh` regenerates the placement map and timing plot from ten pre-route timing reports. `render_chip.py` exports the placed design from OpenROAD, resolves each instance to its Sky130 HD library GDS in KLayout and draws `proposal/chip-render.png`. The image shows geometry inside the cells. It doesn't add routing between them. Run these commands in a disposable checkout to compare the generated figures against a release.
+`check_capture.sh` checks the parallel and byte-wide inputs against three fixed reference outputs. `rebuild_placement.sh` regenerates the placement-density map and timing plot from the placed database and ten pre-route timing reports. These estimates use an ideal clock; they are not routing or silicon measurements.
 
 ## Make a proof from a recording
 

@@ -6,10 +6,6 @@ The [Sky130 hardware design](rtl/eeg_capture.sv) sits on the recorder's digital 
 
 [Read the chip proposal (PDF)](proposal/chipalooza-4-private-eeg.pdf) or [run the verifier](#try-the-verifier).
 
-[![KLayout view of the placed EEG module at two scales: the entire block at left and a detail of its standard-cell geometry at right.](proposal/chip-render.png)](proposal/chip-render.png)
-
-The trial placement is 703 µm square. The enlargement shows the layers *inside* the placed Sky130 cells; the wires *between* cells have not been routed. This is a design render, not a photograph of a fabricated chip.
-
 ## System architecture
 
 ```mermaid
@@ -52,4 +48,4 @@ The design has been simulated, synthesized and placed, but not fabricated. In fi
 - [Build and reproduce the results](REPRODUCE.md), including the [timing results](proposal/timing.csv) and [release audit](proposal/AUDIT.md)
 - [Chipalooza proposal requirements and filing status](proposal/FILING.md)
 
-The design and software are [Apache-2.0](LICENSE). The render uses the [SkyWater high-density standard-cell library](https://github.com/google/skywater-pdk-libs-sky130_fd_sc_hd). The [public EEG excerpt](examples/oz/attribution.json) has separate attribution and licensing.
+The design and software are [Apache-2.0](LICENSE). The [public EEG excerpt](examples/oz/attribution.json) has separate attribution and licensing.
