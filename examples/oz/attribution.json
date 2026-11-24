@@ -1,0 +1,12 @@
+{
+  "file": "eeg_oz.csv",
+  "sha256": "bc2e0c6320aabdbf6a39b248b57158143a956ae21b363467e51ce10e121007f1",
+  "source_csv": "https://raw.githubusercontent.com/orpheus016/sg13cmos5l_spma_ip__instramp/032fcfca79c82cba84269662a915b4293ce339d0/docs/biosignal/data/eeg_oz.csv",
+  "upstream_attribution": "https://github.com/orpheus016/sg13cmos5l_spma_ip__instramp/blob/032fcfca79c82cba84269662a915b4293ce339d0/docs/biosignal/data/ATTRIBUTION.md",
+  "dataset": "Schalk G. EEG Motor Movement/Imagery Dataset (version 1.0.0), PhysioNet. DOI: 10.13026/C28G6P.",
+  "dataset_url": "https://physionet.org/content/eegmmidb/1.0.0/",
+  "record_url": "https://physionet.org/files/eegmmidb/1.0.0/S001/S001R02.edf",
+  "license": "Open Data Commons Attribution License (ODC-By) v1.0",
+  "license_url": "https://opendatacommons.org/licenses/by/1-0/",
+  "excerpt": "S001, R02 eyes-closed baseline, electrode Oz, [10, 14) s, 640 samples at 160 Hz. The earlier amplifier project converted to volts, removed the window mean and rebased the time to zero. No filtering, resampling or other change to its CSV here."
+}

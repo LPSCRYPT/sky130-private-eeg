@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 220" role="img" aria-labelledby="title">
+<title id="title">Only the commitment core is proposed as reusable shuttle IP. A separate trusted sampler and signer provide provenance. The laptop verifies the public manifest and zero-knowledge proofs.</title>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#314257"/></marker></defs>
+<g font-family="sans-serif" fill="#152d41" font-size="14">
+<rect x="4" y="7" width="574" height="147" rx="8" fill="#f2f8f6" stroke="#59746d"/>
+<text x="16" y="30" font-weight="bold">Recorder boundary · only the center block is proposed IP</text>
+<g fill="white" stroke="#52717d"><rect x="16" y="49" width="113" height="54" rx="4"/><rect x="160" y="49" width="206" height="54" rx="4"/><rect x="397" y="49" width="162" height="54" rx="4"/></g>
+<g text-anchor="middle"><text x="72" y="72">Trusted ADC</text><text x="72" y="91">+ slot timer</text><text x="263" y="72" font-weight="bold">Proposed digital IP</text><text x="263" y="91">Blind + commit 500 slots</text><text x="478" y="72">Recorder signer</text><text x="478" y="91">Ordered root manifest</text></g>
+<g fill="none" stroke="#314257" stroke-width="2" marker-end="url(#a)"><path d="M130 76h27"/><path d="M367 76h27"/><path d="M560 76h39"/><path d="M478 182h121"/></g>
+<text x="16" y="133">Keep samples, validity flags and openings private.</text>
+<rect x="602" y="48" width="190" height="148" rx="6" fill="#f5f4fa" stroke="#655887"/>
+<g text-anchor="middle"><text x="697" y="78" font-weight="bold">Observer laptop</text><text x="697" y="107">Verify recorder signature,</text><text x="697" y="127">all window proofs,</text><text x="697" y="147">and aggregate count.</text></g>
+<text x="16" y="181" font-weight="bold">Owner-side prover · reference software, not shuttle IP</text>
+<text x="16" y="202">A final private system needs protected on-die proving.</text>
+</g></svg>

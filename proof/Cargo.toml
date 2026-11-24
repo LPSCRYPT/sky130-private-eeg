@@ -1,0 +1,17 @@
+[package]
+name = "eeg-proof"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "Apache-2.0"
+
+[dependencies]
+anyhow = "=1.0.104"
+ark-bls12-381 = "=0.5.0"
+ark-ff = "=0.5.0"
+ark-groth16 = "=0.5.0"
+ark-r1cs-std = "=0.5.0"
+ark-relations = "=0.5.1"
+ark-serialize = { version = "=0.5.0", features = ["std"] }
+ed25519-dalek = { version = "=2.2.0", features = ["rand_core"] }
+rand = "=0.8.5"

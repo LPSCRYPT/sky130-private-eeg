@@ -1,0 +1,10 @@
+[package]
+name = "eeg-poseidon-params"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+ark-bls12-381 = "=0.5.0"
+ark-crypto-primitives = { version = "=0.5.0", features = ["sponge"] }
+ark-ff = "=0.5.0"
